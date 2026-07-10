@@ -1,19 +1,29 @@
 import { NextRequest } from "next/server";
 import { agentPipeline } from "@/agents/supervisor";
 import { prisma } from "@/utils/db";
+import { FinnhubService } from "@/services/finnhub";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const ticker = searchParams.get("ticker")?.toUpperCase().trim();
+  const query = searchParams.get("ticker")?.trim();
 
-  if (!ticker || !/^[A-Z]{1,5}$/.test(ticker)) {
+  if (!query || !/^[a-zA-Z0-9\s\.\-]{1,30}$/.test(query)) {
     return new Response(
-      JSON.stringify({ error: "Invalid ticker format. Must be 1-5 letters." }),
+      JSON.stringify({ error: "Invalid search query. Enter a name or ticker (1-30 characters)." }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
+
+  const ticker = await FinnhubService.searchSymbol(query);
+  if (!ticker) {
+    return new Response(
+      JSON.stringify({ error: `Could not resolve a stock ticker for "${query}".` }),
+      { status: 404, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
 
   const mockUserId = "default-user";
   try {

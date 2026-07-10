@@ -320,4 +320,38 @@ export class FinnhubService {
       return this.getFallbackNews(ticker);
     }
   }
+
+  static async searchSymbol(query: string): Promise<string | null> {
+    const key = getApiKey();
+    if (!key) {
+      const lower = query.toLowerCase().trim();
+      if (lower.includes("apple") || lower === "aapl") return "AAPL";
+      if (lower.includes("tesla") || lower === "tsla") return "TSLA";
+      if (lower.includes("nvidia") || lower === "nvda") return "NVDA";
+      if (lower.includes("microsoft") || lower === "msft") return "MSFT";
+      if (lower.includes("google") || lower === "goog") return "GOOGL";
+      if (lower.includes("amazon") || lower === "amzn") return "AMZN";
+      if (lower.includes("meta") || lower === "fb") return "META";
+      
+      if (/^[a-zA-Z]{1,10}$/.test(query)) {
+        return query.toUpperCase().trim();
+      }
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${FINNHUB_BASE}/search?q=${encodeURIComponent(query)}&token=${key}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data && data.result && data.result.length > 0) {
+        return data.result[0].symbol;
+      }
+      return null;
+    } catch (err) {
+      if (/^[a-zA-Z]{1,10}$/.test(query)) {
+        return query.toUpperCase().trim();
+      }
+      return null;
+    }
+  }
 }

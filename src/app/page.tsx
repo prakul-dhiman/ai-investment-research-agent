@@ -56,11 +56,10 @@ export default function Home() {
     }
   }
 
-  // SSE event source analysis execution
   function triggerAnalysis(targetTicker: string) {
-    const formatted = targetTicker.toUpperCase().trim();
-    if (!/^[A-Z]{1,5}$/.test(formatted)) {
-      setErrorMessage("Please enter a valid stock ticker (1-5 alphabetical characters).");
+    const query = targetTicker.trim();
+    if (!query || !/^[a-zA-Z0-9\s\.\-]{1,30}$/.test(query)) {
+      setErrorMessage("Please enter a valid stock ticker or company name (1-30 characters).");
       return;
     }
 
@@ -70,7 +69,7 @@ export default function Home() {
     setCurrentMessage("Opening server analytics pipeline...");
     setStep("LOGS");
 
-    const eventSource = new EventSource(`/api/analyze?ticker=${formatted}`);
+    const eventSource = new EventSource(`/api/analyze?ticker=${encodeURIComponent(query)}`);
 
     eventSource.addEventListener("log", (e: any) => {
       try {
@@ -222,7 +221,7 @@ export default function Home() {
                     type="text"
                     value={tickerInput}
                     onChange={(e) => setTickerInput(e.target.value)}
-                    placeholder="Enter ticker (e.g. AAPL, NVDA, TSLA)"
+                    placeholder="Enter company name or ticker (e.g. Apple, NVDA)"
                     className="w-full bg-transparent border-0 outline-none text-slate-100 placeholder-slate-500 text-sm font-medium"
                   />
                 </div>
