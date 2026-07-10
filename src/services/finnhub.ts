@@ -162,6 +162,22 @@ function hashTicker(ticker: string): number {
   return Math.abs(hash);
 }
 
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 2500): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 export class FinnhubService {
   private static getFallbackProfile(ticker: string): FinnhubProfile {
     const cleanTicker = ticker.toUpperCase().trim();
@@ -253,7 +269,7 @@ export class FinnhubService {
     }
 
     try {
-      const res = await fetch(`${FINNHUB_BASE}/stock/profile2?symbol=${ticker}&token=${key}`);
+      const res = await fetchWithTimeout(`${FINNHUB_BASE}/stock/profile2?symbol=${ticker}&token=${key}`, {}, 2000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data || Object.keys(data).length === 0) return this.getFallbackProfile(ticker);
@@ -270,7 +286,7 @@ export class FinnhubService {
     }
 
     try {
-      const res = await fetch(`${FINNHUB_BASE}/quote?symbol=${ticker}&token=${key}`);
+      const res = await fetchWithTimeout(`${FINNHUB_BASE}/quote?symbol=${ticker}&token=${key}`, {}, 2000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data || data.c === 0) return this.getFallbackQuote(ticker);
@@ -287,7 +303,7 @@ export class FinnhubService {
     }
 
     try {
-      const res = await fetch(`${FINNHUB_BASE}/stock/metric?symbol=${ticker}&metric=all&token=${key}`);
+      const res = await fetchWithTimeout(`${FINNHUB_BASE}/stock/metric?symbol=${ticker}&metric=all&token=${key}`, {}, 2000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data || !data.metric) return this.getFallbackMetrics(ticker);
@@ -309,8 +325,10 @@ export class FinnhubService {
       const fromStr = oneMonthAgo.toISOString().split("T")[0];
       const toStr = new Date().toISOString().split("T")[0];
 
-      const res = await fetch(
-        `${FINNHUB_BASE}/company-news?symbol=${ticker}&from=${fromStr}&to=${toStr}&token=${key}`
+      const res = await fetchWithTimeout(
+        `${FINNHUB_BASE}/company-news?symbol=${ticker}&from=${fromStr}&to=${toStr}&token=${key}`,
+        {},
+        2500
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -340,7 +358,7 @@ export class FinnhubService {
     }
 
     try {
-      const res = await fetch(`${FINNHUB_BASE}/search?q=${encodeURIComponent(query)}&token=${key}`);
+      const res = await fetchWithTimeout(`${FINNHUB_BASE}/search?q=${encodeURIComponent(query)}&token=${key}`, {}, 2000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.result && data.result.length > 0) {

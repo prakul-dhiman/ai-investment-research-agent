@@ -16,7 +16,12 @@ const TICKER_CIK_MAP: Record<string, string> = {
   MSFT: "0000789019",
   AMZN: "0001018724",
   GOOGL: "0001652044",
-  META: "0001326801"
+  GOOG: "0001652044",
+  META: "0001326801",
+  NFLX: "0001065280",
+  AMD: "0000002488",
+  INTC: "0000050863",
+  COIN: "0001679788"
 };
 
 const MOCK_RISK_DISCLOSURES: Record<string, string[]> = {
@@ -37,6 +42,22 @@ const MOCK_RISK_DISCLOSURES: Record<string, string[]> = {
   ]
 };
 
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 2500): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 export class SECEdgarService {
   static async lookupCIK(ticker: string): Promise<string | null> {
     const cleanTicker = ticker.toUpperCase().trim();
@@ -45,9 +66,10 @@ export class SECEdgarService {
     }
 
     try {
-      const res = await fetch("https://www.sec.gov/files/company_tickers.json", {
+      const res = await fetchWithTimeout("https://www.sec.gov/files/company_tickers.json", {
         headers: { "User-Agent": SEC_USER_AGENT }
-      });
+      }, 2000);
+      
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       
@@ -80,9 +102,10 @@ export class SECEdgarService {
     }
 
     try {
-      const res = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
+      const res = await fetchWithTimeout(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
         headers: { "User-Agent": SEC_USER_AGENT }
-      });
+      }, 2500);
+      
       if (!res.ok) throw new Error(`SEC facts HTTP ${res.status}`);
       
       const facts: SECCompanyFacts = await res.json();
