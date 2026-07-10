@@ -353,16 +353,26 @@ export default function Home() {
 
             {/* Simulated monitor logs panel */}
             <div className="w-full p-4 rounded-xl bg-slate-950/80 border border-white/5 font-mono text-[11px] text-slate-400 space-y-2 max-h-60 overflow-y-auto leading-relaxed shadow-inner">
-              {pipelineLogs.map((log, index) => (
-                <div key={index} className="flex items-start gap-1.5">
-                  <span className="text-blue-500 shrink-0">&gt;</span>
-                  <span>{log}</span>
+              {pipelineLogs.map((log, index) => {
+                const isLast = index === pipelineLogs.length - 1;
+                return (
+                  <div key={index} className="flex items-start gap-1.5">
+                    <span className="text-blue-500 shrink-0">&gt;</span>
+                    <span className={isLast ? "text-blue-400 flex items-center gap-1.5 font-bold" : ""}>
+                      {log}
+                      {isLast && (
+                        <span className="inline-block animate-ping w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+              {pipelineLogs.length === 0 && (
+                <div className="flex items-center gap-2 text-blue-400 font-bold">
+                  <span className="animate-ping w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                  <span>Connecting to agent pipeline...</span>
                 </div>
-              ))}
-              <div className="flex items-center gap-1 text-blue-400 mt-1">
-                <span className="animate-ping w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                <span className="font-bold">{currentMessage}</span>
-              </div>
+              )}
             </div>
           </div>
         )}
