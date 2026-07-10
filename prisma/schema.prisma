@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  histories History[]
+  bookmarks Bookmark[]
+}
+
+model History {
+  id         String   @id @default(uuid())
+  userId     String
+  ticker     String
+  score      Int
+  verdict    String
+  reportData Json     // Holds the complete synthesized agent report
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  ticker    String
+  createdAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+}
+
+model AgentLog {
+  id          String   @id @default(uuid())
+  analysisId  String
+  agentName   String
+  message     String
+  logLevel    String   @default("INFO")
+  timestamp   DateTime @default(now())
+
+  @@index([analysisId])
+}
