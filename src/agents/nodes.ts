@@ -6,15 +6,11 @@ import { SECEdgarService } from "@/services/secEdgar";
 import { RSSNewsService } from "@/services/rssNews";
 import { calculateInvestmentScore } from "@/utils/scoring";
 
-// Helper to determine if we should mock LLM calls when API keys are missing
 function isGeminiConfigured() {
   const key = process.env.GEMINI_API_KEY;
   return key && key !== "your-gemini-api-key";
 }
 
-// -------------------------------------------------------------
-// Node 1: Research Node
-// -------------------------------------------------------------
 export async function researchNode(state: AgentStateType) {
   const log = `[ResearchNode] Resolving corporate profile for ${state.ticker}...`;
   console.log(log);
@@ -27,9 +23,6 @@ export async function researchNode(state: AgentStateType) {
   };
 }
 
-// -------------------------------------------------------------
-// Node 2: Financials Node
-// -------------------------------------------------------------
 export async function financialsNode(state: AgentStateType) {
   const log = `[FinancialsNode] Retrieving fundamental balance sheets & margins for ${state.ticker}...`;
   console.log(log);
@@ -42,7 +35,6 @@ export async function financialsNode(state: AgentStateType) {
   };
 }
 
-// Deterministic hash helper to vary news summaries per ticker
 function hashTicker(ticker: string): number {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++) {
@@ -51,9 +43,6 @@ function hashTicker(ticker: string): number {
   return Math.abs(hash);
 }
 
-// -------------------------------------------------------------
-// Node 3: News & Sentiment Node
-// -------------------------------------------------------------
 const SentimentAnalysisSchema = z.object({
   positiveCount: z.number().describe("Number of positive articles in the batch"),
   neutralCount: z.number().describe("Number of neutral articles in the batch"),
@@ -65,11 +54,9 @@ export async function newsNode(state: AgentStateType) {
   const log = `[NewsNode] Pulling Google News RSS & Finnhub feeds for ${state.ticker}...`;
   console.log(log);
 
-  // Fetch articles from both RSS and Finnhub
   const rssNews = await RSSNewsService.fetchTickerNews(state.ticker);
   const finnhubNews = await FinnhubService.fetchCompanyNews(state.ticker);
 
-  // Combine and de-duplicate headlines
   const headlines = Array.from(
     new Set([
       ...rssNews.map((n) => n.title),
@@ -109,13 +96,11 @@ ${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
       
       const total = analysis.positiveCount + analysis.neutralCount + analysis.negativeCount;
       if (total > 0) {
-        // Polarity formula: (positive + 0.5 * neutral) / total
         polarity = (analysis.positiveCount + 0.5 * analysis.neutralCount) / total;
       }
       summary = analysis.summary;
     } catch (err) {
       console.error("[NewsNode] Gemini analysis error. Using baseline calculation:", err);
-      // Fallback simple keyword scoring if LLM fails
       const posWords = ["up", "gain", "buy", "beat", "surge", "growth", "high", "success", "expand"];
       let pos = 0;
       headlines.forEach((h) => {
@@ -124,7 +109,6 @@ ${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
       polarity = headlines.length > 0 ? pos / headlines.length : 0.5;
     }
   } else {
-    // Key missing, return mock sentiment score based on ticker
     const cleanTicker = state.ticker.toUpperCase();
     if (cleanTicker === "NVDA") {
       polarity = 0.85;
@@ -137,7 +121,7 @@ ${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
       summary = "EV price cuts and global distribution targets show mixed reviews.";
     } else {
       const hash = hashTicker(cleanTicker);
-      polarity = 0.35 + (hash % 50) / 100; // ranges from 0.35 to 0.85
+      polarity = 0.35 + (hash % 50) / 100;
       const sentiments = [
         "Headlines reflect stable customer demand, moderate trading volatility, and operational expansion.",
         "Market updates note strategic alignments, rising research allocations, and steady shipment metrics.",
@@ -158,14 +142,10 @@ ${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
   };
 }
 
-// -------------------------------------------------------------
-// Node 4: Risk Analysis Node
-// -------------------------------------------------------------
 export async function riskNode(state: AgentStateType) {
   const log = `[RiskNode] Analyzing balance sheet structures and SEC risk factors for ${state.ticker}...`;
   console.log(log);
 
-  // Fetch risk factors from SEC filings
   const riskFactors = await SECEdgarService.fetchRiskFactors(state.ticker);
 
   return {
@@ -174,9 +154,6 @@ export async function riskNode(state: AgentStateType) {
   };
 }
 
-// -------------------------------------------------------------
-// Node 5: Decision Node
-// -------------------------------------------------------------
 const DecisionReportSchema = z.object({
   reasoning: z.array(z.string()).describe("3-4 bullet points backing the INVEST or PASS decision"),
   criticalRisks: z.array(z.string()).describe("Top 2 business risks associated with this stock"),
@@ -187,7 +164,6 @@ export async function decisionNode(state: AgentStateType) {
   const log = `[DecisionNode] Running final hybrid scoring algorithm...`;
   console.log(log);
 
-  // 1. Gather stats from preceding nodes
   const metrics = state.financialData?.metric || {};
   const currentRatio = metrics.currentRatioAnnual;
   const debtEquity = metrics.debtEquityAnnual;
@@ -196,7 +172,6 @@ export async function decisionNode(state: AgentStateType) {
   const epsGrowth = metrics.epsGrowthYoYAnnual;
   const sentimentPolarity = state.newsSentiment?.polarity || 0.5;
 
-  // 2. Run mathematical algorithm
   const scoringOutput = calculateInvestmentScore({
     currentRatio,
     debtEquity,
@@ -206,7 +181,6 @@ export async function decisionNode(state: AgentStateType) {
     sentimentPolarity
   });
 
-  // 3. Compile LLM explanations
   let reasoning = [
     `Computed investment score is ${scoringOutput.score}/100.`,
     `Financial stability ratio scored ${scoringOutput.financialScore}/100.`,
@@ -258,7 +232,6 @@ Provide:
       console.error("[DecisionNode] Gemini error generating explanations, using rules fallback:", err);
     }
   } else {
-    // API Key missing, enrich reasoning with mock details
     const companyName = state.companyProfile?.name || state.ticker;
     if (scoringOutput.verdict === "INVEST") {
       reasoning = [
@@ -275,7 +248,6 @@ Provide:
     }
   }
 
-  // Bind compiled explanations back to the final score structure
   const finalDecision = {
     ...scoringOutput,
     breakdown: {

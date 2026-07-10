@@ -9,7 +9,6 @@ export interface SECCompanyFacts {
 
 const SEC_USER_AGENT = "SmartAgent Research App contact@smartagent.com";
 
-// Local CIK map for top companies to bypass mapping checks in dev
 const TICKER_CIK_MAP: Record<string, string> = {
   AAPL: "0000320193",
   TSLA: "0001318605",
@@ -20,7 +19,6 @@ const TICKER_CIK_MAP: Record<string, string> = {
   META: "0001326801"
 };
 
-// Realistic mock SEC Risk Disclosures (Item 1A summaries) to mock 10-K risk data
 const MOCK_RISK_DISCLOSURES: Record<string, string[]> = {
   AAPL: [
     "Macroeconomic fluctuations, global trade tariffs, or inflationary pressures could impact consumer discretionary spending and depress iPhone margins.",
@@ -40,9 +38,6 @@ const MOCK_RISK_DISCLOSURES: Record<string, string[]> = {
 };
 
 export class SECEdgarService {
-  /**
-   * Translates a stock ticker to a 10-digit zero-padded SEC CIK string
-   */
   static async lookupCIK(ticker: string): Promise<string | null> {
     const cleanTicker = ticker.toUpperCase().trim();
     if (TICKER_CIK_MAP[cleanTicker]) {
@@ -56,7 +51,6 @@ export class SECEdgarService {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       
-      // Parse the SEC mappings structure: {"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}}
       for (const key in data) {
         if (data[key].ticker.toUpperCase() === cleanTicker) {
           const cikStr = String(data[key].cik_str);
@@ -65,20 +59,14 @@ export class SECEdgarService {
       }
       return null;
     } catch (err) {
-      console.error(`[SECEdgarService] Failed CIK lookup for ${ticker}:`, err);
       return null;
     }
   }
 
-  /**
-   * Fetches Item 1A Risk Factors summary for a company
-   */
   static async fetchRiskFactors(ticker: string): Promise<string[]> {
     const cleanTicker = ticker.toUpperCase().trim();
     
-    // Provide clean, realistic mock data for top companies or when offline
     if (MOCK_RISK_DISCLOSURES[cleanTicker]) {
-      console.log(`[SECEdgarService] Returning pre-compiled 10-K risk factors for ${cleanTicker}.`);
       return MOCK_RISK_DISCLOSURES[cleanTicker];
     }
 
@@ -92,16 +80,12 @@ export class SECEdgarService {
     }
 
     try {
-      // Typically, parsing raw Item 1A from HTML requires heavy scrapers or full 10-K downloads.
-      // For this serverless agent, we fetch company facts dynamically and generate a summarized response,
-      // falling back to localized baseline summaries if companyFacts are too large.
       const res = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
         headers: { "User-Agent": SEC_USER_AGENT }
       });
       if (!res.ok) throw new Error(`SEC facts HTTP ${res.status}`);
       
       const facts: SECCompanyFacts = await res.json();
-      // We check if the facts have us-gaap and return a synthesized note
       if (facts && facts.entityName) {
         return [
           `Risks related to ${facts.entityName}'s research and development allocations in its specific sector.`,
@@ -110,9 +94,8 @@ export class SECEdgarService {
         ];
       }
       
-      throw new Error("Invalid SEC response body format");
+      throw new Error("Invalid SEC response format");
     } catch (err: any) {
-      console.warn(`[SECEdgarService] Falling back to baseline risks for ${cleanTicker}:`, err.message);
       return [
         `Macroeconomic vulnerabilities including currency adjustments and shipping lane logistics cost increases.`,
         `Fierce sector-specific competition affecting consumer pricing structures.`,

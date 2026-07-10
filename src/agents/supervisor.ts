@@ -8,8 +8,6 @@ import {
   decisionNode
 } from "./nodes";
 
-// Compile state graph nodes into a sequential processing pipeline
-// We use "decisionAgent" as the node name to avoid conflict with the "decision" state channel
 const workflow = new StateGraph(AgentState)
   .addNode("research", researchNode)
   .addNode("financials", financialsNode)

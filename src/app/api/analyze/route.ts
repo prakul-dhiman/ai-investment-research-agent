@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Ensure default mock user exists for local database storage
   const mockUserId = "default-user";
   try {
     await prisma.user.upsert({
@@ -33,7 +32,6 @@ export async function GET(req: NextRequest) {
 
   const encoder = new TextEncoder();
 
-  // Create stream for Server-Sent Events (SSE)
   const stream = new ReadableStream({
     async start(controller) {
       function sendEvent(event: string, data: any) {
@@ -47,7 +45,6 @@ export async function GET(req: NextRequest) {
           message: `Initializing research pipeline for ${ticker}...`
         });
 
-        // Initialize state graph execution
         const streamResults = await agentPipeline.stream(
           { ticker: ticker },
           { streamMode: "updates" }
@@ -55,9 +52,7 @@ export async function GET(req: NextRequest) {
 
         let finalState: any = null;
 
-        // Iterate through graph node transitions
         for await (const chunk of streamResults) {
-          // Chunk is structured as: { nodeName: { stateChanges } }
           const nodeName = Object.keys(chunk)[0];
           const nodeOutput = (chunk as any)[nodeName];
 
@@ -70,15 +65,12 @@ export async function GET(req: NextRequest) {
             });
           }
 
-          // Accumulate states
           finalState = { ...finalState, ...nodeOutput };
         }
 
-        // Run final decision compilation
         if (finalState && finalState.decision) {
           const decision = finalState.decision;
 
-          // Save final analysis to history DB
           let savedReport = null;
           try {
             savedReport = await prisma.history.create({
@@ -91,7 +83,7 @@ export async function GET(req: NextRequest) {
               }
             });
           } catch (saveErr) {
-            console.error("[Analyze API] Failed to save report to database:", saveErr);
+            console.error("[Analyze API] Failed to save report:", saveErr);
           }
 
           sendEvent("complete", {

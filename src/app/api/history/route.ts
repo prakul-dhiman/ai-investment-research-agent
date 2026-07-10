@@ -42,7 +42,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { ticker, action } = body; // action: "bookmark" | "delete"
+    const { ticker, action } = body;
 
     if (!ticker || !/^[A-Z]{1,5}$/.test(ticker)) {
       return NextResponse.json({ error: "Invalid ticker format." }, { status: 400 });
@@ -54,13 +54,11 @@ export async function POST(req: NextRequest) {
       });
 
       if (existing) {
-        // Toggle off (remove bookmark)
         await prisma.bookmark.delete({
           where: { id: existing.id }
         });
         return NextResponse.json({ bookmarked: false });
       } else {
-        // Toggle on (add bookmark)
         await prisma.bookmark.create({
           data: { userId: mockUserId, ticker }
         });
@@ -81,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action parameter." }, { status: 400 });
   } catch (err: any) {
-    console.error("[History API] Error updating bookmarks/deleting record:", err);
+    console.error("[History API] Error updating history:", err);
     return NextResponse.json({ error: "Action processing failed." }, { status: 500 });
   }
 }

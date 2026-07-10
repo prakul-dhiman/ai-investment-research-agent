@@ -11,12 +11,8 @@ export interface RSSFeedItem {
 const parser = new Parser();
 
 export class RSSNewsService {
-  /**
-   * Fetches latest news headlines from Google News RSS feed for a specific ticker
-   */
   static async fetchTickerNews(ticker: string): Promise<RSSFeedItem[]> {
     const cleanTicker = ticker.toUpperCase().trim();
-    // Build query to focus on stock market context
     const query = encodeURIComponent(`${cleanTicker} stock market business`);
     const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
 
@@ -25,7 +21,6 @@ export class RSSNewsService {
       if (!feed.items || feed.items.length === 0) return [];
 
       return feed.items.slice(0, 10).map((item) => {
-        // Extract publisher name from title (Google News formats titles as: "Headline - Publisher")
         let title = item.title || "";
         let sourceName = "Google News";
         const parts = title.split(" - ");
@@ -43,8 +38,6 @@ export class RSSNewsService {
         };
       });
     } catch (err) {
-      console.error(`[RSSNewsService] Failed to parse RSS news for ${ticker}:`, err);
-      // Return a clean empty array as a safe fallback
       return [];
     }
   }

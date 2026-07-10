@@ -6,7 +6,6 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefi
 const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
 const dbPath = dbUrl.startsWith("file:") ? dbUrl.replace("file:", "") : dbUrl;
 
-// Initialize Prisma Better SQLite3 adapter by passing connection options
 const adapter = new PrismaBetterSqlite3({ url: dbPath });
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });

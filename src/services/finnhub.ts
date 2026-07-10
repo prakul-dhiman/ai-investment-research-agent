@@ -9,11 +9,11 @@ export interface FinnhubProfile {
 }
 
 export interface FinnhubQuote {
-  c: number; // Current price
-  h: number; // High price of the day
-  l: number; // Low price of the day
-  o: number; // Open price of the day
-  pc: number; // Previous close price
+  c: number;
+  h: number;
+  l: number;
+  o: number;
+  pc: number;
 }
 
 export interface FinnhubMetric {
@@ -47,7 +47,6 @@ function getApiKey() {
   return key;
 }
 
-// Realistic mock data for common tickers if keys are missing
 const MOCK_PROFILES: Record<string, FinnhubProfile> = {
   AAPL: {
     name: "Apple Inc.",
@@ -155,7 +154,6 @@ const MOCK_NEWS: Record<string, FinnhubNews[]> = {
   ]
 };
 
-// Deterministic hash helper to generate varied metrics per ticker for mock fallback
 function hashTicker(ticker: string): number {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++) {
@@ -179,7 +177,7 @@ export class FinnhubService {
       logo: "",
       finnhubIndustry: industry,
       weburl: `https://www.${cleanTicker.toLowerCase()}.com`,
-      marketCapitalization: 10000 + (hash % 990000), // $10B to $1T
+      marketCapitalization: 10000 + (hash % 990000),
       shareOutstanding: 100 + (hash % 9900)
     };
   }
@@ -189,7 +187,7 @@ export class FinnhubService {
     if (MOCK_QUOTES[cleanTicker]) return MOCK_QUOTES[cleanTicker];
     
     const hash = hashTicker(cleanTicker);
-    const basePrice = 10 + (hash % 490); // $10 to $500
+    const basePrice = 10 + (hash % 490);
     return {
       c: basePrice,
       h: basePrice * 1.02,
@@ -204,13 +202,11 @@ export class FinnhubService {
     if (MOCK_METRICS[cleanTicker]) return MOCK_METRICS[cleanTicker];
     
     const hash = hashTicker(cleanTicker);
-    
-    // Deterministic metrics based on ticker name
-    const currentRatio = 0.8 + (hash % 300) / 100;         // 0.8 to 3.8
-    const debtEquity = (hash % 250) / 100;                 // 0.0 to 2.5
-    const netProfitMargin = ((hash % 60) - 15) / 100;      // -15% to 45%
-    const revenueGrowth = ((hash % 100) - 20) / 100;       // -20% to 80%
-    const epsGrowth = ((hash % 120) - 30) / 100;           // -30% to 90%
+    const currentRatio = 0.8 + (hash % 300) / 100;
+    const debtEquity = (hash % 250) / 100;
+    const netProfitMargin = ((hash % 60) - 15) / 100;
+    const revenueGrowth = ((hash % 100) - 20) / 100;
+    const epsGrowth = ((hash % 120) - 30) / 100;
 
     return {
       metric: {
@@ -253,7 +249,6 @@ export class FinnhubService {
   static async fetchProfile(ticker: string): Promise<FinnhubProfile> {
     const key = getApiKey();
     if (!key) {
-      console.log(`[FinnhubService] Missing/default key. Returning mock profile for ${ticker}.`);
       return this.getFallbackProfile(ticker);
     }
 
@@ -264,7 +259,6 @@ export class FinnhubService {
       if (!data || Object.keys(data).length === 0) return this.getFallbackProfile(ticker);
       return data;
     } catch (err) {
-      console.error(`[FinnhubService] Failed to fetch profile for ${ticker}:`, err);
       return this.getFallbackProfile(ticker);
     }
   }
@@ -272,7 +266,6 @@ export class FinnhubService {
   static async fetchQuote(ticker: string): Promise<FinnhubQuote> {
     const key = getApiKey();
     if (!key) {
-      console.log(`[FinnhubService] Missing/default key. Returning mock quote for ${ticker}.`);
       return this.getFallbackQuote(ticker);
     }
 
@@ -283,7 +276,6 @@ export class FinnhubService {
       if (!data || data.c === 0) return this.getFallbackQuote(ticker);
       return data;
     } catch (err) {
-      console.error(`[FinnhubService] Failed to fetch quote for ${ticker}:`, err);
       return this.getFallbackQuote(ticker);
     }
   }
@@ -291,7 +283,6 @@ export class FinnhubService {
   static async fetchMetrics(ticker: string): Promise<FinnhubMetric> {
     const key = getApiKey();
     if (!key) {
-      console.log(`[FinnhubService] Missing/default key. Returning mock metrics for ${ticker}.`);
       return this.getFallbackMetrics(ticker);
     }
 
@@ -302,7 +293,6 @@ export class FinnhubService {
       if (!data || !data.metric) return this.getFallbackMetrics(ticker);
       return data;
     } catch (err) {
-      console.error(`[FinnhubService] Failed to fetch metrics for ${ticker}:`, err);
       return this.getFallbackMetrics(ticker);
     }
   }
@@ -310,7 +300,6 @@ export class FinnhubService {
   static async fetchCompanyNews(ticker: string): Promise<FinnhubNews[]> {
     const key = getApiKey();
     if (!key) {
-      console.log(`[FinnhubService] Missing/default key. Returning mock news for ${ticker}.`);
       return this.getFallbackNews(ticker);
     }
 
@@ -326,9 +315,8 @@ export class FinnhubService {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) return this.getFallbackNews(ticker);
-      return data.slice(0, 10); // Return up to 10 news articles
+      return data.slice(0, 10);
     } catch (err) {
-      console.error(`[FinnhubService] Failed to fetch company news for ${ticker}:`, err);
       return this.getFallbackNews(ticker);
     }
   }

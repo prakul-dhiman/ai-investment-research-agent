@@ -3,7 +3,7 @@ import { FinnhubProfile, FinnhubMetric } from "@/services/finnhub";
 import { ScoreOutput } from "@/utils/scoring";
 
 export interface NewsSentimentData {
-  polarity: number; // 0 to 1
+  polarity: number;
   articleCount: number;
   headlinesSummary: string;
 }
