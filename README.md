@@ -154,9 +154,4 @@ The system uses **LangGraph.js** to manage stateful multi-agent execution loops 
 *   **Options Flow Analysis**: Integrate unusual options activity data to detect institutional sentiment before earnings.
 *   **GitHub Actions CI/CD**: Run Playwright E2E tests and build verification automatically on every push.
 
----
-
-## 7. Bonus Points: LLM Chat Transcript Included!
-As mandated by the Altuni AI Labs take-home criteria, the **full conversational agent development chat logs** are included. You can inspect the step-by-step logs, thinking trajectories, and code design decisions made during the creation of this project here:
-📂 [agent_chat_transcript.jsonl](./agent_chat_transcript.jsonl)
 
