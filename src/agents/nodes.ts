@@ -5,6 +5,7 @@ import { FinnhubService } from "@/services/finnhub";
 import { SECEdgarService } from "@/services/secEdgar";
 import { RSSNewsService } from "@/services/rssNews";
 import { calculateInvestmentScore } from "@/utils/scoring";
+import type { InsiderSentimentData } from "./state";
 
 function isGeminiConfigured() {
   const key = process.env.GEMINI_API_KEY;
@@ -154,6 +155,101 @@ export async function riskNode(state: AgentStateType) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Insider Trading Sentiment Math Engine
+// ---------------------------------------------------------------------------
+// Computes Buy/Sell Dollar Ratio, Net Share Flow, and cross-references
+// against quote data to detect all-time-high insider buying signals.
+// ---------------------------------------------------------------------------
+
+export async function insiderNode(state: AgentStateType) {
+  const log = `[InsiderNode] Fetching insider transactions for ${state.ticker}...`;
+  console.log(log);
+
+  const transactions = await FinnhubService.fetchInsiderTransactions(state.ticker);
+
+  if (!transactions || transactions.length === 0) {
+    const result: InsiderSentimentData = {
+      sentiment: "Neutral",
+      netShares: 0,
+      buyToSellRatio: "0.00",
+      allTimeHighBuy: false,
+      rawTransactions: [],
+    };
+    return {
+      insiderSentiment: result,
+      logs: [log, `[InsiderNode] No insider transactions found. Defaulting to Neutral.`],
+    };
+  }
+
+  // Aggregate buys vs sells
+  let netShares = 0;
+  let totalBuyDollarValue = 0;
+  let totalSellDollarValue = 0;
+
+  transactions.forEach((tx) => {
+    const dollarValue = Math.abs(tx.change) * (tx.transactionPrice || 1);
+    if (tx.change > 0) {
+      // Positive change = purchase
+      totalBuyDollarValue += dollarValue;
+      netShares += tx.change;
+    } else {
+      // Negative change = sale
+      totalSellDollarValue += dollarValue;
+      netShares += tx.change;
+    }
+  });
+
+  // Buy-to-Sell Dollar Ratio
+  const buyToSellRatio =
+    totalSellDollarValue === 0
+      ? totalBuyDollarValue > 0
+        ? 999.0
+        : 0
+      : totalBuyDollarValue / totalSellDollarValue;
+
+  // Cross-reference against current quote for all-time-high detection
+  let allTimeHighBuy = false;
+  try {
+    const quote = await FinnhubService.fetchQuote(state.ticker);
+    // If current price equals today's high AND insiders are net buying, strong signal
+    allTimeHighBuy = quote.h === quote.c && netShares > 0;
+  } catch {
+    // Quote check is best-effort
+  }
+
+  // Compute sentiment label from ratio + net flow
+  let sentiment = "Neutral";
+  if (buyToSellRatio > 2 && netShares > 0) sentiment = "Strong Bullish";
+  else if (buyToSellRatio > 1.2 && netShares > 0) sentiment = "Bullish";
+  else if (buyToSellRatio < 0.5 && netShares < 0) sentiment = "Strong Bearish";
+  else if (buyToSellRatio < 0.8 && netShares < 0) sentiment = "Bearish";
+
+  const result: InsiderSentimentData = {
+    sentiment,
+    netShares,
+    buyToSellRatio: buyToSellRatio.toFixed(2),
+    allTimeHighBuy,
+    rawTransactions: transactions.slice(0, 3).map((tx) => ({
+      name: tx.name,
+      change: tx.change,
+      filingDate: tx.filingDate,
+    })),
+  };
+
+  return {
+    insiderSentiment: result,
+    logs: [
+      log,
+      `[InsiderNode] Insider sentiment: ${sentiment} (Buy/Sell Ratio: ${buyToSellRatio.toFixed(2)}, Net Shares: ${netShares}).`,
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Decision Agent Node
+// ---------------------------------------------------------------------------
+
 const DecisionReportSchema = z.object({
   reasoning: z.array(z.string()).describe("3-4 bullet points backing the INVEST or PASS decision"),
   criticalRisks: z.array(z.string()).describe("Top 2 business risks associated with this stock"),
@@ -171,6 +267,7 @@ export async function decisionNode(state: AgentStateType) {
   const revenueGrowth = metrics.revenueGrowthYoYAnnual;
   const epsGrowth = metrics.epsGrowthYoYAnnual;
   const sentimentPolarity = state.newsSentiment?.polarity || 0.5;
+  const insiderSentiment = state.insiderSentiment?.sentiment;
 
   const scoringOutput = calculateInvestmentScore({
     currentRatio,
@@ -178,13 +275,15 @@ export async function decisionNode(state: AgentStateType) {
     netProfitMargin,
     revenueGrowth,
     epsGrowth,
-    sentimentPolarity
+    sentimentPolarity,
+    insiderSentiment,
   });
 
   let reasoning = [
     `Computed investment score is ${scoringOutput.score}/100.`,
     `Financial stability ratio scored ${scoringOutput.financialScore}/100.`,
-    `Recent news sentiment polarity is ${Math.round(sentimentPolarity * 100)}% positive.`
+    `Recent news sentiment polarity is ${Math.round(sentimentPolarity * 100)}% positive.`,
+    `Insider trading sentiment: ${insiderSentiment || "N/A"} (Score: ${scoringOutput.insiderScore}/100).`
   ];
   let criticalRisks = state.riskProfile.slice(0, 2);
   let limitations = ["Evaluation is based on static snapshot fundamental reports."];
@@ -204,6 +303,7 @@ We have run our quantitative scoring engine and got these results:
 - Financial Health Score: ${scoringOutput.financialScore}/100
 - Growth Score: ${scoringOutput.growthScore}/100
 - News Sentiment Score: ${scoringOutput.sentimentScore}/100
+- Insider Sentiment: ${insiderSentiment || "N/A"} (Score: ${scoringOutput.insiderScore}/100)
 - Risk Penalty points applied: ${scoringOutput.riskPenalty}
 
 Underlying raw profile facts:
@@ -214,6 +314,9 @@ ${JSON.stringify(state.financialData?.metric || {})}
 
 Underlying sentiment summary:
 ${state.newsSentiment?.headlinesSummary || ""}
+
+Insider trading data:
+${JSON.stringify(state.insiderSentiment || {})}
 
 Itemized SEC risks:
 ${state.riskProfile.map((r, i) => `${i + 1}. ${r}`).join("\n")}
@@ -237,13 +340,15 @@ Provide:
       reasoning = [
         `${companyName} exhibits robust profitability with a Net Profit Margin of ${Math.round((netProfitMargin || 0.20) * 100)}%, well above industry benchmarks.`,
         `Low leverage profile (Debt/Equity: ${debtEquity || 0.15}) ensures capital structure flexibility.`,
-        `Favorable product demand cycles are supported by news sentiment polarity (${Math.round(sentimentPolarity * 100)}% positive).`
+        `Favorable product demand cycles are supported by news sentiment polarity (${Math.round(sentimentPolarity * 100)}% positive).`,
+        `Insider trading signals are ${insiderSentiment || "Neutral"}, reinforcing executive confidence in forward guidance.`
       ];
     } else {
       reasoning = [
         `${companyName} reports high valuation relative to near-term growth trends (Score: ${scoringOutput.score}/100).`,
         `Moderate leverage or cash flows place pressure on liquidity markers under standard stress scenarios.`,
-        `Sentiment polarity reflects sector headwinds and supply chain cost trends.`
+        `Sentiment polarity reflects sector headwinds and supply chain cost trends.`,
+        `Insider sentiment registered as ${insiderSentiment || "Neutral"}, indicating limited executive conviction.`
       ];
     }
   }

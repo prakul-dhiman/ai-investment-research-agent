@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { agentPipeline } from "@/agents/supervisor";
 import { prisma } from "@/utils/db";
 import { FinnhubService } from "@/services/finnhub";
+import { getSmartCache, setSmartCache } from "@/lib/advanced-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,53 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // -----------------------------------------------------------------------
+  // Market-Hour-Aware Cache Check
+  // -----------------------------------------------------------------------
+  const cachedResult = await getSmartCache(ticker, ticker);
+  if (cachedResult) {
+    console.log(`[Analyze API] Cache HIT for ${ticker}. Serving cached result.`);
 
+    const encoder = new TextEncoder();
+    const cachedStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            `event: log\ndata: ${JSON.stringify({
+              agent: "Cache",
+              status: "HIT",
+              message: `Serving cached analysis for ${ticker} (market-hour-aware cache).`,
+            })}\n\n`
+          )
+        );
+        controller.enqueue(
+          encoder.encode(
+            `event: complete\ndata: ${JSON.stringify({
+              reportId: cachedResult.reportId || "cached-report",
+              ticker,
+              verdict: cachedResult.decision?.verdict || "PASS",
+              score: cachedResult.decision?.score || 0,
+              confidence: cachedResult.decision?.confidence || 0,
+              reportData: cachedResult,
+            })}\n\n`
+          )
+        );
+        controller.close();
+      },
+    });
+
+    return new Response(cachedStream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Full Pipeline Execution
+  // -----------------------------------------------------------------------
   const mockUserId = "default-user";
   try {
     await prisma.user.upsert({
@@ -56,7 +103,7 @@ export async function GET(req: NextRequest) {
         });
 
         const streamResults = await agentPipeline.stream(
-          { ticker: ticker },
+          { ticker: ticker, query: query },
           { streamMode: "updates" }
         );
 
@@ -94,6 +141,13 @@ export async function GET(req: NextRequest) {
             });
           } catch (saveErr) {
             console.error("[Analyze API] Failed to save report:", saveErr);
+          }
+
+          // Store in smart cache for future requests
+          try {
+            await setSmartCache(ticker, ticker, finalState);
+          } catch (cacheErr) {
+            console.error("[Analyze API] Cache write failed:", cacheErr);
           }
 
           sendEvent("complete", {

@@ -8,8 +8,20 @@ export interface NewsSentimentData {
   headlinesSummary: string;
 }
 
+export interface InsiderSentimentData {
+  sentiment: string; // "Strong Bullish" | "Bullish" | "Neutral" | "Bearish" | "Strong Bearish"
+  netShares: number;
+  buyToSellRatio: string;
+  allTimeHighBuy: boolean;
+  rawTransactions: Array<{ name: string; change: number; filingDate: string }>;
+}
+
 export const AgentState = Annotation.Root({
   ticker: Annotation<string>(),
+  query: Annotation<string>({
+    reducer: (x, y) => y || x,
+    default: () => "",
+  }),
   companyProfile: Annotation<FinnhubProfile | null>({
     reducer: (x, y) => y ?? x,
     default: () => null,
@@ -22,6 +34,10 @@ export const AgentState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => null,
   }),
+  insiderSentiment: Annotation<InsiderSentimentData | null>({
+    reducer: (x, y) => y ?? x,
+    default: () => null,
+  }),
   riskProfile: Annotation<string[]>({
     reducer: (x, y) => x.concat(y),
     default: () => [],
@@ -29,6 +45,10 @@ export const AgentState = Annotation.Root({
   decision: Annotation<ScoreOutput | null>({
     reducer: (x, y) => y ?? x,
     default: () => null,
+  }),
+  routedNodes: Annotation<string[]>({
+    reducer: (_x, y) => y,
+    default: () => [],
   }),
   logs: Annotation<string[]>({
     reducer: (x, y) => x.concat(y),

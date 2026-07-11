@@ -5,6 +5,7 @@ export interface ScoringMetrics {
   revenueGrowth?: number;
   epsGrowth?: number;
   sentimentPolarity?: number;
+  insiderSentiment?: string; // "Strong Bullish" | "Bullish" | "Neutral" | "Bearish" | "Strong Bearish"
 }
 
 export interface ScoreOutput {
@@ -14,6 +15,7 @@ export interface ScoreOutput {
   financialScore: number;
   growthScore: number;
   sentimentScore: number;
+  insiderScore: number;
   riskPenalty: number;
   breakdown: {
     currentRatioScore: number;
@@ -21,12 +23,14 @@ export interface ScoreOutput {
     netProfitMarginScore: number;
     revenueGrowthScore: number;
     epsGrowthScore: number;
+    insiderSentimentScore: number;
   };
 }
 
 export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
   let missingCount = 0;
   
+  // --- Financial Health Metrics ---
   let debtEquityScore = 100;
   if (metrics.debtEquity === undefined) {
     missingCount++;
@@ -61,6 +65,7 @@ export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
     0.4 * debtEquityScore + 0.4 * netProfitMarginScore + 0.2 * currentRatioScore
   );
 
+  // --- Growth Metrics ---
   let revenueGrowthScore = 100;
   if (metrics.revenueGrowth === undefined) {
     missingCount++;
@@ -83,6 +88,7 @@ export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
 
   const growthScore = Math.round(0.5 * revenueGrowthScore + 0.5 * epsGrowthScore);
 
+  // --- News Sentiment ---
   let sentimentScore = 50;
   if (metrics.sentimentPolarity === undefined) {
     missingCount++;
@@ -90,6 +96,22 @@ export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
     sentimentScore = Math.round(metrics.sentimentPolarity * 100);
   }
 
+  // --- Insider Sentiment (Conditional) ---
+  let totalMetrics = 6;
+  let insiderScore = 50;
+  if (metrics.insiderSentiment !== undefined) {
+    totalMetrics = 7;
+    const map: Record<string, number> = {
+      "Strong Bullish": 100,
+      "Bullish": 80,
+      "Neutral": 50,
+      "Bearish": 25,
+      "Strong Bearish": 0,
+    };
+    insiderScore = map[metrics.insiderSentiment] ?? 50;
+  }
+
+  // --- Risk Penalties ---
   let riskPenalty = 0;
   if (metrics.debtEquity !== undefined && metrics.debtEquity > 2.0) {
     riskPenalty += 15;
@@ -100,14 +122,25 @@ export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
   if (metrics.currentRatio !== undefined && metrics.currentRatio < 1.0) {
     riskPenalty += 10;
   }
-  riskPenalty = Math.min(riskPenalty, 30);
+  if (metrics.insiderSentiment === "Strong Bearish") {
+    riskPenalty += 5;
+  }
+  riskPenalty = Math.min(riskPenalty, 30); // Cap at 30 to stay aligned with test requirements
 
-  const baseScore = 0.4 * financialScore + 0.3 * growthScore + 0.3 * sentimentScore;
+  // --- Final Score Computation ---
+  let baseScore = 0;
+  if (metrics.insiderSentiment !== undefined) {
+    baseScore =
+      0.35 * financialScore +
+      0.25 * growthScore +
+      0.25 * sentimentScore +
+      0.15 * insiderScore;
+  } else {
+    baseScore = 0.4 * financialScore + 0.3 * growthScore + 0.3 * sentimentScore;
+  }
+
   const score = Math.max(0, Math.min(100, Math.round(baseScore - riskPenalty)));
-
-  const totalMetrics = 6;
   const confidence = Math.round(((totalMetrics - missingCount) / totalMetrics) * 100);
-
   const verdict = score >= 70 && confidence >= 75 ? "INVEST" : "PASS";
 
   return {
@@ -117,13 +150,15 @@ export function calculateInvestmentScore(metrics: ScoringMetrics): ScoreOutput {
     financialScore,
     growthScore,
     sentimentScore,
+    insiderScore,
     riskPenalty,
     breakdown: {
       currentRatioScore: Math.round(currentRatioScore),
       debtEquityScore: Math.round(debtEquityScore),
       netProfitMarginScore: Math.round(netProfitMarginScore),
       revenueGrowthScore: Math.round(revenueGrowthScore),
-      epsGrowthScore: Math.round(epsGrowthScore)
+      epsGrowthScore: Math.round(epsGrowthScore),
+      insiderSentimentScore: insiderScore,
     }
   };
 }
