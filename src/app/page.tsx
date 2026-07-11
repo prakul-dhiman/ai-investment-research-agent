@@ -43,6 +43,7 @@ export default function Home() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [historyList, setHistoryList] = useState<HistoryRecord[]>([]);
   const [riskTolerance, setRiskTolerance] = useState<"conservative" | "moderate" | "aggressive">("moderate");
+  const [historyFilter, setHistoryFilter] = useState("");
 
   useEffect(() => {
     fetchHistoryData();
@@ -251,10 +252,28 @@ export default function Home() {
             </div>
 
             {/* Past Report Logs list */}
-            <div className="flex-1 flex flex-col min-h-48 space-y-3.5">
+            <div className="flex-1 flex flex-col min-h-48 space-y-3">
               <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                 <History className="w-3.5 h-3.5 text-indigo-400" /> Recent Research Logs
               </h4>
+              
+              {historyList.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/50 border border-white/5 focus-within:border-indigo-500/30 transition-colors">
+                  <Search className="w-3 h-3 text-slate-500 shrink-0" />
+                  <input
+                    type="text"
+                    value={historyFilter}
+                    onChange={(e) => setHistoryFilter(e.target.value)}
+                    placeholder="Filter history..."
+                    className="bg-transparent border-0 outline-none text-slate-200 placeholder-slate-650 text-[10px] w-full p-0 focus:ring-0"
+                  />
+                  {historyFilter && (
+                    <button onClick={() => setHistoryFilter("")} className="text-slate-500 hover:text-slate-350 cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
               
               {historyList.length === 0 ? (
                 <p className="text-[10px] text-slate-500 bg-slate-950/20 p-3.5 rounded-xl border border-white/5 font-semibold">
@@ -262,41 +281,46 @@ export default function Home() {
                 </p>
               ) : (
                 <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[320px] pr-1">
-                  {historyList.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => loadHistoricalReport(item.id)}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-white/10 cursor-pointer transition-colors group"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`min-w-[36px] px-1.5 h-8 rounded-lg flex items-center justify-center text-[9px] font-black tracking-wider shrink-0 ${
-                          item.verdict === "INVEST" 
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" 
-                            : "bg-rose-500/10 text-rose-400 border border-rose-500/25"
-                        }`}>
-                          {item.ticker}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold text-slate-200 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            Score: {item.score}
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${
-                              item.verdict === "INVEST"
-                                ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
-                                : "bg-rose-500/5 border-rose-500/20 text-rose-400"
-                            }`}>
-                              {item.verdict}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => deleteHistoryRecord(item.id, e)}
-                        className="text-[8px] text-slate-500 hover:text-rose-400 px-1.5 py-1 rounded bg-slate-900 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  {historyList
+                    .filter((item) => 
+                      item.ticker.toLowerCase().includes(historyFilter.toLowerCase()) ||
+                      item.verdict.toLowerCase().includes(historyFilter.toLowerCase())
+                    )
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => loadHistoricalReport(item.id)}
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-white/10 cursor-pointer transition-colors group"
                       >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`min-w-[36px] px-1.5 h-8 rounded-lg flex items-center justify-center text-[9px] font-black tracking-wider shrink-0 ${
+                            item.verdict === "INVEST" 
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" 
+                              : "bg-rose-500/10 text-rose-400 border border-rose-500/25"
+                          }`}>
+                            {item.ticker}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-extrabold text-slate-200 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                              Score: {item.score}
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${
+                                item.verdict === "INVEST"
+                                  ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                                  : "bg-rose-500/5 border-rose-500/20 text-rose-400"
+                              }`}>
+                                {item.verdict}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => deleteHistoryRecord(item.id, e)}
+                          className="text-[8px] text-slate-500 hover:text-rose-400 px-1.5 py-1 rounded bg-slate-900 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
