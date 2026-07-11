@@ -15,7 +15,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Flame,
-  Activity
+  Activity,
+  Sliders,
+  Settings,
+  X
 } from "lucide-react";
 import { AnalysisView } from "@/components/dashboard/AnalysisView";
 
@@ -39,6 +42,7 @@ export default function Home() {
   const [activeReport, setActiveReport] = useState<any>(null);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [historyList, setHistoryList] = useState<HistoryRecord[]>([]);
+  const [riskTolerance, setRiskTolerance] = useState<"conservative" | "moderate" | "aggressive">("moderate");
 
   useEffect(() => {
     fetchHistoryData();
@@ -164,256 +168,279 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen w-full flex flex-col justify-between relative overflow-hidden">
+    <main className="min-h-screen w-full flex flex-col justify-between relative overflow-hidden bg-[#090d16] grid-pattern">
       {/* Background Decorative Mesh Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none select-none animate-pulse-slow"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] bg-purple-500/8 rounded-full blur-[120px] pointer-events-none select-none"></div>
+      <div className="absolute top-[-25%] left-[-15%] w-[60%] h-[60%] glow-sphere-1 rounded-full blur-[140px] pointer-events-none select-none animate-glow-1"></div>
+      <div className="absolute bottom-[-15%] right-[-15%] w-[55%] h-[55%] glow-sphere-2 rounded-full blur-[140px] pointer-events-none select-none animate-glow-2"></div>
+      <div className="absolute top-[30%] right-[20%] w-[35%] h-[35%] glow-sphere-3 rounded-full blur-[120px] pointer-events-none select-none"></div>
 
       {/* Header NavBar */}
-      <header className="border-b border-white/5 bg-slate-950/20 backdrop-blur-xl px-6 py-4 flex items-center justify-between z-10 sticky top-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Layers className="w-4.5 h-4.5 text-white" />
+      <header className="border-b border-white/5 bg-[#090d16]/45 backdrop-blur-2xl px-8 py-4 flex items-center justify-between z-10 sticky top-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+            <Layers className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-black tracking-tight text-lg text-slate-100">SmartAgent</span>
-            <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
-              V2.0
+            <span className="font-black tracking-tight text-base text-slate-100">SmartAgent</span>
+            <span className="ml-2.5 text-[9px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20 uppercase tracking-wider">
+              Workspace v2.0
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <a
-            href="https://finnhub.io"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[11px] text-slate-400 flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-          >
-            <Database className="w-3.5 h-3.5" /> Powered by Finnhub & SEC
-          </a>
+        
+        <div className="flex items-center gap-4 print:hidden">
+          <span className="text-[10px] text-slate-500 flex items-center gap-1.5 font-bold uppercase tracking-wider">
+            <Database className="w-3.5 h-3.5 text-indigo-500" /> SEC EDGAR & FINNHUB LIVE
+          </span>
         </div>
       </header>
 
-      {/* Main Container */}
-      <div className="flex-1 w-full flex flex-col justify-center z-10 relative">
+      {/* Workspace Area split */}
+      <div className="flex-1 w-full flex flex-col md:flex-row z-10 relative">
+        
+        {/* Left Workspace Settings & History Sidebar */}
         {step === "SEARCH" && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto px-6 py-16 space-y-12 w-full">
-            {/* Title Hero Banner */}
-            <div className="text-center space-y-5 max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-[11px] text-slate-400 font-semibold">
-                <Flame className="w-3.5 h-3.5 text-amber-500 fill-current" /> Next-Gen AI Investment Intelligence
-              </span>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-100 leading-none">
-                AI Investment <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
-                  Research Agent
-                </span>
-              </h1>
-              <p className="text-slate-400 text-sm max-w-lg mx-auto leading-relaxed">
-                Analyze public corporations instantly. Evaluates real-time financial stats, de-duplicates headlines, and parses SEC 10-K risk vectors automatically.
-              </p>
+          <aside className="w-full md:w-80 border-r border-white/5 bg-[#0b0f1a]/45 backdrop-blur-2xl p-6 space-y-8 flex flex-col shrink-0 print:hidden">
+            {/* Risk profile selection */}
+            <div className="space-y-3.5">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" /> Analyst Parameters
+              </h4>
+              <div className="p-1 rounded-xl bg-slate-950/80 border border-white/5 flex gap-1">
+                {(["conservative", "moderate", "aggressive"] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRiskTolerance(r)}
+                    className={`flex-1 py-2 text-[9px] font-extrabold uppercase rounded-lg transition-all cursor-pointer ${
+                      riskTolerance === r
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Command-Bar Style Search Console */}
-            <div className="w-full max-w-xl space-y-3">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  triggerAnalysis(tickerInput);
-                }}
-                className="flex items-center gap-3 p-2 rounded-2xl bg-slate-950/80 border border-white/10 backdrop-blur-xl focus-within:border-blue-500/50 focus-within:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all duration-300"
-              >
-                <div className="flex-1 flex items-center gap-3 px-3">
-                  <Search className="w-5 h-5 text-slate-400 shrink-0" />
-                  <input
-                    type="text"
-                    value={tickerInput}
-                    onChange={(e) => setTickerInput(e.target.value)}
-                    placeholder="Enter company name or ticker (e.g. Apple, NVDA)"
-                    className="w-full bg-transparent border-0 outline-none text-slate-100 placeholder-slate-500 text-sm font-medium focus:ring-0"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold tracking-wider uppercase text-slate-100 transition-colors shadow-lg shadow-blue-600/30 btn-glow-blue cursor-pointer"
-                >
-                  Analyze
-                </button>
-              </form>
-
-              {errorMessage && (
-                <div className="flex items-center gap-2 p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/15 text-rose-400 text-xs font-semibold animate-shake">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMessage}</span>
+            {/* Watchlist bookmarks list */}
+            <div className="space-y-3.5">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Bookmark className="w-3.5 h-3.5 text-indigo-400" /> Bookmarks Watchlist
+              </h4>
+              {bookmarks.length === 0 ? (
+                <p className="text-[10px] text-slate-500 bg-slate-950/20 p-3.5 rounded-xl border border-white/5 leading-relaxed font-semibold">
+                  No bookmark saved yet. Run analyses and bookmark from report.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {bookmarks.map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => {
+                        setTickerInput(b);
+                        triggerAnalysis(b);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-white/5 hover:border-indigo-500/30 text-slate-300 hover:text-indigo-400 text-[10px] font-bold transition-all cursor-pointer"
+                    >
+                      {b} <ArrowRight className="w-3 h-3 text-indigo-500" />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Ticker screener shortcuts */}
-            <div className="flex flex-wrap justify-center items-center gap-2.5 text-[11px]">
-              <span className="text-slate-500 font-semibold uppercase tracking-wider mr-1">Popular:</span>
-              {["Apple", "NVIDIA", "Tesla", "Microsoft", "Amazon"].map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => {
-                    setTickerInput(preset);
-                    triggerAnalysis(preset);
-                  }}
-                  className="px-3.5 py-1.5 rounded-full bg-slate-900 border border-white/5 hover:border-slate-800 hover:bg-slate-800/80 text-slate-300 font-semibold transition-all cursor-pointer"
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-
-            {/* Bottom: Bookmarks & History grid dashboard */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-white/5">
-              {/* Watchlist bookmarks */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-                  <Bookmark className="w-4 h-4 text-blue-500" /> Bookmarked Watchlist
-                </h3>
-                {bookmarks.length === 0 ? (
-                  <p className="text-xs text-slate-500 leading-relaxed bg-slate-950/20 p-4 rounded-xl border border-white/5">
-                    No tickers currently bookmarked. Run an analysis and bookmark it directly from the result page dashboard.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2.5">
-                    {bookmarks.map((b) => (
-                      <button
-                        key={b}
-                        onClick={() => {
-                          setTickerInput(b);
-                          triggerAnalysis(b);
-                        }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900/60 border border-white/5 hover:border-blue-500/30 text-slate-300 hover:text-blue-400 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        {b} <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Historical logs */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-                  <History className="w-4 h-4 text-blue-500" /> Recent Search History
-                </h3>
-                {historyList.length === 0 ? (
-                  <p className="text-xs text-slate-500 bg-slate-950/20 p-4 rounded-xl border border-white/5">
-                    No past analyses found.
-                  </p>
-                ) : (
-                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    {historyList.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => loadHistoricalReport(item.id)}
-                        className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-white/5 hover:border-white/10 cursor-pointer transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-black tracking-wider ${
-                            item.verdict === "INVEST" 
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          }`}>
-                            {item.ticker}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-200 group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
-                              Score: {item.score}
-                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold border ${
-                                item.verdict === "INVEST"
-                                  ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
-                                  : "bg-rose-500/5 border-rose-500/20 text-rose-400"
-                              }`}>
-                                {item.verdict}
-                              </span>
-                            </p>
-                            <span className="text-[9px] text-slate-500 flex items-center gap-1 mt-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(item.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
+            {/* Past Report Logs list */}
+            <div className="flex-1 flex flex-col min-h-48 space-y-3.5">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <History className="w-3.5 h-3.5 text-indigo-400" /> Recent Research Logs
+              </h4>
+              
+              {historyList.length === 0 ? (
+                <p className="text-[10px] text-slate-500 bg-slate-950/20 p-3.5 rounded-xl border border-white/5 font-semibold">
+                  No past report logs found.
+                </p>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[320px] pr-1">
+                  {historyList.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => loadHistoricalReport(item.id)}
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-white/10 cursor-pointer transition-colors group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`min-w-[36px] px-1.5 h-8 rounded-lg flex items-center justify-center text-[9px] font-black tracking-wider shrink-0 ${
+                          item.verdict === "INVEST" 
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" 
+                            : "bg-rose-500/10 text-rose-400 border border-rose-500/25"
+                        }`}>
+                          {item.ticker}
                         </div>
-
-                        <button
-                          onClick={(e) => deleteHistoryRecord(item.id, e)}
-                          className="text-[9px] text-slate-500 hover:text-rose-400 font-bold px-2 py-1 rounded bg-slate-900 border border-white/5 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          Remove
-                        </button>
+                        <div>
+                          <p className="text-[10px] font-extrabold text-slate-200 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                            Score: {item.score}
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${
+                              item.verdict === "INVEST"
+                                ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                                : "bg-rose-500/5 border-rose-500/20 text-rose-400"
+                            }`}>
+                              {item.verdict}
+                            </span>
+                          </p>
+                        </div>
                       </div>
-                    ))}
+                      <button
+                        onClick={(e) => deleteHistoryRecord(item.id, e)}
+                        className="text-[8px] text-slate-500 hover:text-rose-400 px-1.5 py-1 rounded bg-slate-900 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Center Panel Core Workspace */}
+        <div className="flex-1 flex flex-col justify-center w-full min-w-0">
+          
+          {step === "SEARCH" && (
+            <div className="max-w-3xl mx-auto w-full px-8 py-16 space-y-12">
+              
+              {/* Core Hero Banner */}
+              <div className="text-center space-y-4">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 border border-white/5 text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">
+                  <Flame className="w-3.5 h-3.5 text-amber-500 fill-current animate-pulse" /> Venture Grade Financial Diligence
+                </span>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-100 leading-none">
+                  Research any public <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-300 to-purple-400">
+                    company with AI.
+                  </span>
+                </h1>
+                <p className="text-slate-400 text-xs max-w-md mx-auto leading-relaxed font-semibold">
+                  A multi-agent quantitative analyst pipeline. Standardizes balance metrics, computes risk heatmaps, and tracks real-time news sentiment.
+                </p>
+              </div>
+
+              {/* Main Search Command Bar */}
+              <div className="space-y-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    triggerAnalysis(tickerInput);
+                  }}
+                  className="flex items-center gap-3 p-2.5 rounded-2xl input-premium backdrop-blur-xl duration-300"
+                >
+                  <div className="flex-1 flex items-center gap-3 px-3">
+                    <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      value={tickerInput}
+                      onChange={(e) => setTickerInput(e.target.value)}
+                      placeholder="Enter company name or ticker (e.g. Apple, NVDA)"
+                      className="w-full bg-transparent border-0 outline-none text-slate-100 placeholder-slate-600 text-xs font-semibold focus:ring-0"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold tracking-wider uppercase text-slate-100 transition-colors shadow-lg shadow-indigo-600/30 cursor-pointer"
+                  >
+                    Analyze
+                  </button>
+                </form>
+
+                {errorMessage && (
+                  <div className="flex items-center gap-2.5 p-4 rounded-xl bg-rose-500/5 border border-rose-500/15 text-rose-400 text-[11px] font-bold animate-shake">
+                    <AlertCircle className="w-4 h-4 shrink-0 animate-bounce" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Tag Screener shortcuts */}
+              <div className="flex flex-wrap justify-center items-center gap-2.5 text-[10px]">
+                <span className="text-slate-500 font-extrabold uppercase tracking-wider mr-1">Trending:</span>
+                {["Apple", "NVIDIA", "Tesla", "Microsoft", "Amazon"].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => {
+                      setTickerInput(preset);
+                      triggerAnalysis(preset);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-900/60 border border-white/5 hover:border-indigo-500/30 hover:text-indigo-400 text-slate-300 font-bold transition-all cursor-pointer"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loader screen thinking panels */}
+          {step === "LOGS" && (
+            <div className="max-w-xl mx-auto w-full px-8 py-16 space-y-6 flex flex-col items-center">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-14 h-14 rounded-full border border-indigo-500/30 animate-ping"></div>
+                <div className="p-4 rounded-full bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 z-10">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
+              </div>
+
+              <div className="text-center space-y-2">
+                <h2 className="text-base font-black tracking-tight text-slate-200 flex items-center justify-center gap-2 uppercase">
+                  <Activity className="w-4 h-4 text-indigo-400 animate-pulse" /> Pipeline Reasoning Panel
+                </h2>
+                <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">
+                  Active Thread: <span className="text-indigo-400 font-bold">{currentAgent}</span>
+                </p>
+              </div>
+
+              {/* Real-time reasoning timeline console */}
+              <div className="w-full p-4 rounded-2xl bg-slate-950/80 border border-white/5 font-mono text-[10px] text-slate-400 space-y-2 max-h-60 overflow-y-auto leading-relaxed shadow-inner">
+                {pipelineLogs.map((log, index) => {
+                  const isLast = index === pipelineLogs.length - 1;
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      <span className="text-indigo-500 shrink-0 select-none">&gt;</span>
+                      <span className={isLast ? "text-indigo-400 flex items-center gap-1.5 font-bold animate-pulse" : ""}>
+                        {log}
+                        {isLast && (
+                          <span className="inline-block animate-ping w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+                {pipelineLogs.length === 0 && (
+                  <div className="flex items-center gap-2 text-indigo-400 font-bold">
+                    <span className="animate-ping w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                    <span>Connecting to multi-agent state pipeline...</span>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Loading console panel */}
-        {step === "LOGS" && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto px-6 py-16 space-y-6 w-full">
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-12 h-12 rounded-full border border-blue-500/30 animate-ping"></div>
-              <div className="p-4 rounded-full bg-blue-600/10 border border-blue-500/20 text-blue-400 z-10">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
-            </div>
-
-            <div className="text-center space-y-2">
-              <h2 className="text-base font-bold tracking-tight text-slate-200 flex items-center justify-center gap-2">
-                <Activity className="w-4 h-4 text-blue-400 animate-pulse" /> Orchestrating Agent Nodes
-              </h2>
-              <p className="text-[11px] text-slate-400 uppercase tracking-wider">
-                Currently Executing: <span className="font-bold text-blue-400">{currentAgent}</span>
-              </p>
-            </div>
-
-            {/* Simulated monitor logs panel */}
-            <div className="w-full p-4 rounded-xl bg-slate-950/80 border border-white/5 font-mono text-[11px] text-slate-400 space-y-2 max-h-60 overflow-y-auto leading-relaxed shadow-inner">
-              {pipelineLogs.map((log, index) => {
-                const isLast = index === pipelineLogs.length - 1;
-                return (
-                  <div key={index} className="flex items-start gap-1.5">
-                    <span className="text-blue-500 shrink-0">&gt;</span>
-                    <span className={isLast ? "text-blue-400 flex items-center gap-1.5 font-bold animate-pulse" : ""}>
-                      {log}
-                      {isLast && (
-                        <span className="inline-block animate-ping w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                      )}
-                    </span>
-                  </div>
-                );
-              })}
-              {pipelineLogs.length === 0 && (
-                <div className="flex items-center gap-2 text-blue-400 font-bold">
-                  <span className="animate-ping w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                  <span>Connecting to agent pipeline...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Results views dashboard */}
-        {step === "RESULT" && activeReport && (
-          <AnalysisView
-            reportData={activeReport}
-            isBookmarked={bookmarks.includes(activeReport.ticker)}
-            onToggleBookmark={() => toggleBookmark(activeReport.ticker)}
-            onBack={() => setStep("SEARCH")}
-          />
-        )}
+          {/* Results dashboard display */}
+          {step === "RESULT" && activeReport && (
+            <AnalysisView
+              reportData={activeReport}
+              isBookmarked={bookmarks.includes(activeReport.ticker)}
+              onToggleBookmark={() => toggleBookmark(activeReport.ticker)}
+              onBack={() => setStep("SEARCH")}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-slate-950/20 px-6 py-4 flex items-center justify-between text-[10px] text-slate-500 z-10">
-        <p>&copy; {new Date().getFullYear()} SmartAgent. All rights reserved.</p>
-        <p className="flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Professional Grade Research Engine
+      {/* Footer bar */}
+      <footer className="border-t border-white/5 bg-[#090d16]/45 px-8 py-4 flex items-center justify-between text-[10px] text-slate-500 z-10 print:hidden">
+        <p>&copy; {new Date().getFullYear()} SmartAgent Research, Inc.</p>
+        <p className="flex items-center gap-1.5 font-bold uppercase tracking-wider">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Bloomberg Grade AI Framework
         </p>
       </footer>
     </main>
